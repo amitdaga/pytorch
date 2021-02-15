@@ -32,6 +32,7 @@ from torch.testing._internal.common_cuda import TEST_CUDA, _get_torch_cuda_versi
 from torch.testing._internal.common_utils import (TestCase, run_tests, skipIfNoLapack,
                                                   suppress_warnings, slowTest,
                                                   load_tests, random_symmetric_matrix,
+                                                  random_hermitian_matrix,
                                                   IS_WINDOWS, IS_MACOS, CudaMemoryLeakCheck,
                                                   TemporaryFileName, TEST_WITH_ROCM,
                                                   gradcheck, gradgradcheck)
@@ -2781,15 +2782,15 @@ class TestAutograd(TestCase):
         def func_eigvecs(B):
             return torch.eig(B, eigenvectors=True)[1]
 
-        def run_test(dims):
+        def run_test(dims, dtype):
             # The backward operation for eig only works for real eigenvalues,
             # so the matrix should be B = U^{-1}*A*U where A is a random
             # symmetric matrix and U is a random full-rank matrix.
             # Slight change to the matrix should not make the eigenvalues
             # complex, so we apply requires_grad_ to B, not A and U
 
-            A = random_symmetric_matrix(dims[-1], *dims[:-2])
-            U = torch.rand(*dims)
+            A = random_hermitian_matrix(dims[-1], *dims[:-2], dtype=dtype)
+            U = torch.rand(*dims, dtype=dtype)
             Uinv = torch.inverse(U)
             B = torch.matmul(Uinv, torch.matmul(A, U)).requires_grad_()
 
@@ -2800,8 +2801,8 @@ class TestAutograd(TestCase):
             gradcheck(func_eigvecs, [B])
             gradgradcheck(func_eigvecs, [B])
 
-        for dims in [(3, 3), (5, 5)]:
-            run_test(dims)
+        for dims, dtype in product([(3, 3), (5, 5)], [torch.double]):
+            run_test(dims, dtype)
 
     @skipIfNoLapack
     def test_symeig(self):
