@@ -2130,7 +2130,7 @@ Tensor eig_backward(const std::vector<torch::autograd::Variable> &grads, const T
   Tensor U_contrib;
   if (U_grad.defined()) {
     D = D.narrow(-1, 0, 1);
-    auto F = (D.transpose(-2, -1) - D).conj();
+    auto F = (D.transpose(-2, -1) - D);
     if (!F.is_complex()) {
       F.diagonal(0, -2, -1).fill_(INFINITY);
       F.pow_(-1);
@@ -2153,7 +2153,7 @@ Tensor eig_backward(const std::vector<torch::autograd::Variable> &grads, const T
     }
     auto U_grad_proj_onto_U = at::matmul(Uh, U_grad);
     auto Uh_U = at::matmul(Uh, U);
-    U_contrib = (U_grad_proj_onto_U - Uh_U * U_grad_proj_onto_U.diagonal(0, -2, -1).unsqueeze(-2)) * F;
+    U_contrib = (U_grad_proj_onto_U - Uh_U * U_grad_proj_onto_U.diagonal(0, -2, -1).unsqueeze(-2)) * F.conj();
   }
   else {
     U_contrib = at::zeros_like(self, LEGACY_CONTIGUOUS_MEMORY_FORMAT);
